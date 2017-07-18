@@ -15,6 +15,7 @@ class Cart < ActiveRecord::Base
     line_item = self.line_items.find_by(item_id: item_id)
     if line_item
       line_item.quantity += 1
+      line_item.save
     else
       line_item = self.line_items.build(item_id: item_id)
     end
@@ -22,12 +23,13 @@ class Cart < ActiveRecord::Base
   end
 
   def cart_checkout
-    self.line_items.each do |line_item|
-      @item = Item.find(line_item.item_id)
-      @item.inventory = @item.inventory - line_item.quantity
-      @item.save
-    end
-    current_user.update(current_cart: nil)
     self.update(status: "submitted")
+    if self.status == "submitted"
+      self.line_items.each do |line_item|
+        line_item.item.inventory -= line_item.quantity
+        line_item.item.save
+      end
+    end
+    current_user.update(current_cart_id: nil)
   end
 end
